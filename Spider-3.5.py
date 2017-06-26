@@ -1,6 +1,7 @@
 # Spider.py
-# -*- coding: utf-8 _*_
-import re,urllib2
+# -*- coding: utf-8 -*-
+from urllib.request import urlopen
+import re
 from multiprocessing.managers import BaseManager
 
 # 任务管理类
@@ -16,7 +17,7 @@ QueueManager.register('get_flag')
 server_addr = '127.0.0.1'
 
 #配置连接信息
-m = QueueManager(address=(server_addr,5111),authkey='IamSpiderMan')
+m = QueueManager(address=(server_addr,5111),authkey=b'IamSpiderMan')
 
 #连接
 m.connect()
@@ -30,7 +31,7 @@ isStart = m.get_flag()
 def putUrl(data):
     if data:
         # 抓取问题的号码并放入队列
-        questionPattern = re.compile("<a class=\"question_link\" href=\"/question/(.*)\">.+?</a>")
+        questionPattern = re.compile("<a class=\"question_link\" href=\"/question/(.*?)\">.+?</a>")
         urllist = questionPattern.findall(data)
         if urllist:
             for x in urllist:
@@ -39,11 +40,11 @@ def putUrl(data):
 
 # 下载队列中的问题链接
 def downLoad(questionUrl):
-    html = urllib2.urlopen(questionUrl).read()
+    html = urlopen(questionUrl).read()
     # 获取问题的标题,此处因为有空格，要开启're.S'否则不能匹配成功
-    title = re.search("<h2 class=\"zm-item-title zm-editable-content\">(.*)</h2>",html,re.S).group(1).strip('\n')
-    print title
-    f = open(title + '.html','w+')
+    title = re.search("<h2 class=\"zm-item-title zm-editable-content\">(.*?)</h2>",html,re.S).group(1).strip('\n')
+    print(title)
+    f = open("pages/"+title + '.html','w+')
     f.write(html)
     f.close()
     result_queue.put(title)
@@ -55,9 +56,9 @@ def taskStart():
     while task_queue.qsize() > 1 and isStart.qsize() > 0:
         num = task_queue.get()
         questionUrl = hosturl + num
-        print num
+        print(num)
         questionData = downLoad(questionUrl)
         putUrl(questionData)
-    print "主人任务已完成"
+    print("主人任务已完成")
 
 taskStart()
